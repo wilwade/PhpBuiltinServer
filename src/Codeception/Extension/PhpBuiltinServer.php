@@ -39,6 +39,16 @@ class PhpBuiltinServer extends Extension
         register_shutdown_function(
             function () use ($resource) {
                 if (is_resource($resource)) {
+		//Getting rid of child processes per http://php.net/manual/en/function.proc-terminate.php#81353 and PHP bug 39992
+		$status = proc_get_status($this->resource);
+		$ppid = $status['pid'];
+		$pids = preg_split('/\s+/', `ps -o pid --no-heading --ppid $ppid`);
+		foreach($pids as $pid) {
+			if(is_numeric($pid)) {
+				echo "killing {$pid}";
+				posix_kill($pid, 9); //9 is the SIGKILL signal
+			}
+		}
                     proc_terminate($resource);
                 }
             }
